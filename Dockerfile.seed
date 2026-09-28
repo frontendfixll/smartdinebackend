@@ -1,0 +1,12 @@
+# One-shot seed container — runs `npm run seed` then exits
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --ignore-scripts
+
+COPY tsconfig*.json ./
+COPY src ./src
+
+CMD ["npx", "ts-node", "-r", "tsconfig-paths/register", "src/db/seed.ts"]
