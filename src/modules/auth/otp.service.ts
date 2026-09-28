@@ -42,12 +42,16 @@ export async function issueOtp({ identifier, channel, purpose, metadata }: Issue
 
   const body = `Your SmartDine verification code is ${code}. Valid for ${config.otp.expiresInMin} minutes.`;
 
+  let mocked = !config.twilio.enabled;
   if (channel === 'sms') {
     const result = await sendSms({ to: identifier, body });
+    mocked = result.mocked;
     if (result.mocked) logger.info(`[DEV OTP] ${identifier} → ${code}`);
   }
 
-  return { expiresAt, mocked: !config.twilio.enabled };
+  // When no real SMS provider is configured (demo/dev), surface the code to the
+  // caller so it can be shown/auto-filled — otherwise the guest can never verify.
+  return { expiresAt, mocked, devCode: mocked ? code : undefined };
 }
 
 export interface VerifyOtpInput {

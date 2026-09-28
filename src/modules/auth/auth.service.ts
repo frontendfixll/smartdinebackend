@@ -221,8 +221,8 @@ export async function requestGuestOtp(phone: string) {
   }
 
   // For new guests, require OTP verification
-  await issueOtp({ identifier: phone, channel: 'sms', purpose: 'guest_signin' });
-  return { sentTo: maskPhone(phone), isReturning: false };
+  const { devCode } = await issueOtp({ identifier: phone, channel: 'sms', purpose: 'guest_signin' });
+  return { sentTo: maskPhone(phone), isReturning: false, devCode };
 }
 
 export async function verifyGuestOtp(phone: string, code: string) {
