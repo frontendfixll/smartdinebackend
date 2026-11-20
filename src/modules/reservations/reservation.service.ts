@@ -1,3 +1,5 @@
+import { recordNotice } from '@modules/tableService/notices';
+import { seatingOwner } from '@modules/tableService/assignment';
 import mongoose, { ClientSession, Types } from 'mongoose';
 import { getOrCreateRestaurant } from '@modules/restaurant/restaurant.service';
 import { ReservationModel, ReservationStatus } from './reservation.model';
@@ -243,11 +245,14 @@ export async function updateReservation(
             tableId: table._id,
             currency: (await getOrCreateRestaurant()).currency,
             guestCount: r.partySize,
+            ...(await seatingOwner(table.zone, r.partySize, session)),
             notes: `Reservation ${String(r._id)}`,
           },
         ],
         { session },
       );
+      if (visit.qrService) await recordNotice(session,visit._id,'seated',visit.waiterId,ctx?.actorId);
+      table.arrival = undefined;
       table.currentSessionId = visit._id;
       await table.save({ session });
       r.tableSessionId = visit._id;
@@ -346,3 +351,4 @@ export async function getUpcomingReservations(days = 7, limit = 50) {
     .limit(limit)
     .lean();
 }
+

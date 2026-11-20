@@ -23,6 +23,7 @@ export interface KdsOrderDto {
   id: string;
   orderNumber: string;
   channel: string;
+  qrService?: boolean;
   tableId?: string;
   windowToken?: string;
   createdAt: Date;
@@ -64,6 +65,7 @@ export async function getQueue(station?: string): Promise<KdsOrderDto[]> {
         id: String(o._id),
         orderNumber: o.orderNumber,
         channel: o.channel,
+        qrService:o.qrService,
         tableId: o.tableId ? String(o.tableId) : undefined,
         windowToken: o.windowToken,
         createdAt: o.createdAt,
@@ -91,6 +93,7 @@ export async function snapshot(): Promise<{ stations: Record<string, KdsOrderDto
           id: String(o._id),
           orderNumber: o.orderNumber,
           channel: o.channel,
+        qrService:o.qrService,
           tableId: o.tableId ? String(o.tableId) : undefined,
           windowToken: o.windowToken,
           createdAt: o.createdAt,
@@ -120,3 +123,4 @@ export async function recall(orderId: string) {
     timeline: order.timeline,
   };
 }
+

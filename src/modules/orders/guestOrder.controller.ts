@@ -1,3 +1,6 @@
+import { TableSessionModel } from '@modules/tables/tableSession.model';
+import { entry } from '@modules/tableService/entry';
+import { grantedVisit } from '@modules/tableService/membership';
 import { DeliveryModel } from '@modules/delivery/delivery.model';
 import { FeedbackModel } from '@modules/feedback/feedback.model';
 import { OrderModel } from './order.model';
@@ -40,9 +43,15 @@ export const quote = asyncHandler(async (req: Request, res: Response) =>
 );
 
 export const placeDineIn = asyncHandler(async (req: Request, res: Response) => {
+  const access = req.headers['x-visit-token'];
+  const { enrolled, visit } = await entry(req.body.qrSlug);
+  if (enrolled || access) {
+    if (!visit || grantedVisit(access) !== String(visit._id)) throw AppError.forbidden('Join this table before ordering');
+  }
+  const scope = enrolled ? 'guest:visit:'+visit!._id : 'guest:dine-in';
   const order = await runOrderRequest(
-    orderRequest(req.headers['idempotency-key'], 'guest:dine-in', 'place:dine-in', req.body),
-    (attempt) => svc.placeDineInOrder(v.placeDineInGuestSchema.parse(req.body), {}, attempt),
+    orderRequest(req.headers['idempotency-key'], scope, 'place:dine-in', req.body),
+    (attempt) => svc.placeDineInOrder(v.placeDineInGuestSchema.parse(req.body), {}, attempt, { token: req.headers['x-visit-token'] }),
   );
   return created(res, {
     ...toGuestDTO(order),
@@ -100,11 +109,20 @@ export const getByOrderNumber = asyncHandler(async (req: Request, res: Response)
 });
 
 export const sendRequest = asyncHandler(async (req: Request, res: Response) => {
+  const order = await svc.getOrder(req.params.id);
+  if (order.tableSessionId && await TableSessionModel.exists({ _id:order.tableSessionId, qrService:true }))
+    throw AppError.conflict('Open table service from your table QR to request help, water or the bill');
   const r = await svc.addGuestRequest(req.params.id, req.body.type, req.body.message);
   return created(res, r);
 });
 
 export const addItems = asyncHandler(async (req: Request, res: Response) => {
+  const existing = await svc.getOrder(req.params.id);
+  if (existing.tableSessionId) {
+    const visit = await TableSessionModel.findById(existing.tableSessionId).select('qrService status').lean();
+    if (visit?.qrService && (visit.status !== 'open' || grantedVisit(req.headers['x-visit-token']) !== String(visit._id)))
+      throw AppError.forbidden('Rejoin this table before adding items');
+  }
   const guestCtx = req.guest?.phone ? { actorName: `Guest:${req.guest.phone}` } : {};
   const order = await runOrderRequest(
     orderRequest(
@@ -128,3 +146,4 @@ export const initiatePayment = asyncHandler(async (req: Request, res: Response) 
   const result = await initiateGuestPayment(req.params.id, req.body.tip);
   return created(res, result);
 });
+

@@ -1,3 +1,4 @@
+import tableServiceRoutes from '@modules/tableService/routes';
 import setupRoutes from '@modules/setup/setup.routes';
 import deliveryRoutes from '@modules/delivery/delivery.routes';
 import purchasingRoutes from '@modules/purchasing/purchasing.routes';
@@ -54,6 +55,7 @@ router.use('/modifier-groups', modifierGroupRoutes);
 router.use('/combos', comboRoutes);
 router.use('/menu', menuMetaRoutes);
 router.use('/tables', tableRoutes);
+router.use('/table-service', tableServiceRoutes);
 router.use('/table-sessions', tableSessionRoutes);
 router.use('/qr-codes', qrCodeRoutes);
 router.use('/orders', orderRoutes);
@@ -82,3 +84,4 @@ router.use('/guest/reservations', guestReservationRoutes);
 router.use('/landing', landingRoutes);
 
 export default router;
+

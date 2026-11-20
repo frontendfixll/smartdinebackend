@@ -1,3 +1,4 @@
+import { publishServiceNotices } from '@modules/tableService/notices';
 import { defineInventoryRecoveryJob } from './inventoryRecovery.job';
 import { defineSettlementRecoveryJob } from './settlementRecovery.job';
 import Agenda from 'agenda';
@@ -22,6 +23,7 @@ export async function startScheduler(): Promise<Agenda> {
   agenda.on('success', (job) => logger.debug({ name: job.attrs.name }, 'job succeeded'));
   agenda.on('fail', (err, job) => logger.error({ name: job.attrs.name, err }, 'job failed'));
 
+  agenda.define('publish-table-service', publishServiceNotices);
   defineDailySummaryJob(agenda);
   defineCleanupJobs(agenda);
   defineInventorySnapshotJob(agenda);
@@ -38,6 +40,7 @@ export async function startScheduler(): Promise<Agenda> {
   await agenda.every('20 1 * * *', 'expire-loyalty-points');
   await agenda.every('1 minute', 'recover-order-inventory');
   await agenda.every('1 minute', 'recover-paid-orders');
+  await agenda.every('1 minute', 'publish-table-service');
 
   logger.info('Agenda scheduler started');
   return agenda;
@@ -52,3 +55,4 @@ export async function stopScheduler(): Promise<void> {
 export function getAgenda(): Agenda | null {
   return agenda;
 }
+
