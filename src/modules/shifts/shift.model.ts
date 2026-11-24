@@ -2,6 +2,12 @@ import { Schema, model, Types } from 'mongoose';
 export interface ShiftRecord {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
+  serviceZone?: string;
+  serviceOverflow?: boolean;
+  maxServiceTables?: number;
+  maxServiceCovers?: number;
+  lastServiceAt?: Date;
+  serviceVersion?: number;
   startedAt: Date;
   endedAt?: Date;
   status: 'open' | 'closed';
@@ -17,7 +23,8 @@ const schema = new Schema<ShiftRecord>(
     endedAt: Date,
     status: { type: String, enum: ['open', 'closed'], default: 'open' },
     breaks: [{ startedAt: { type: Date, required: true }, endedAt: Date }],
-    notes: String,
+    notes: String, serviceZone: String, serviceOverflow: Boolean, maxServiceTables: Number,
+    maxServiceCovers: Number, lastServiceAt: Date, serviceVersion: Number,
   },
   { timestamps: true },
 );
@@ -35,3 +42,4 @@ export function shiftSummary(shift: ShiftRecord) {
     breakMinutes: Math.floor(breakMs / 60000),
   };
 }
+

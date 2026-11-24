@@ -45,6 +45,8 @@ export interface OrderItem {
   acceptedAt?: Date;
   preparingAt?: Date;
   readyAt?: Date;
+  runnerId?: Types.ObjectId;
+  pickedUpAt?: Date;
   servedAt?: Date;
   voidReason?: string;
   voidedById?: Types.ObjectId;
@@ -98,6 +100,7 @@ export interface OrderDocument extends Document {
   pickupAt?: Date;
   pickedUpAt?: Date;
 
+  qrService?: boolean;
   qrCodeId?: Types.ObjectId;
   customerId?: Types.ObjectId;
 
@@ -167,6 +170,8 @@ const OrderItemSchema = new Schema<OrderItem>(
     acceptedAt: Date,
     preparingAt: Date,
     readyAt: Date,
+    runnerId: Schema.Types.ObjectId,
+    pickedUpAt: Date,
     servedAt: Date,
     voidReason: String,
     voidedById: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -247,6 +252,7 @@ const OrderSchema = new Schema<OrderDocument>(
     pickupAt: Date,
     pickedUpAt: Date,
 
+    qrService: Boolean,
     qrCodeId: { type: Schema.Types.ObjectId, ref: 'QrCode' },
     customerId: { type: Schema.Types.ObjectId, ref: 'Customer', index: true },
 
@@ -288,3 +294,4 @@ OrderSchema.index({ channel: 1, status: 1, createdAt: -1 });
 OrderSchema.index({ tableId: 1, status: 1 });
 
 export const OrderModel = model<OrderDocument>('Order', OrderSchema);
+

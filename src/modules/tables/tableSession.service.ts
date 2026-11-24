@@ -1,3 +1,6 @@
+import { ServiceTask } from '@modules/tableService/task.model';
+import { recordNotice } from '@modules/tableService/notices';
+import { pilotZone, seatingOwner } from '@modules/tableService/assignment';
 import { getOrCreateRestaurant } from '@modules/restaurant/restaurant.service';
 import mongoose, { Types } from 'mongoose';
 import { OrderModel } from '@modules/orders/order.model';
@@ -48,6 +51,8 @@ export async function openSession(input: OpenSessionInput, ctx: ActorCtx) {
     );
     if (!table)
       throw AppError.conflict('The table must be vacant and ready before opening a visit');
+    if (pilotZone(table.zone) && process.env.QR_SERVICE_MODE === 'live' && !input.guestCount)
+      throw AppError.badRequest('Enter the party size to seat an enrolled table');
     if ((input.guestCount ?? 1) > table.capacity)
       throw AppError.conflict('Party exceeds table capacity');
     if (
@@ -62,12 +67,14 @@ export async function openSession(input: OpenSessionInput, ctx: ActorCtx) {
           tableId: table._id,
           currency: restaurant.currency,
           guestCount: input.guestCount ?? 1,
-          waiterId: input.waiterId,
+          ...(await seatingOwner(table.zone, input.guestCount ?? 1, transaction, input.waiterId)),
           customerId: input.customerId,
         },
       ],
       { session: transaction },
     );
+    if (visit.qrService) await recordNotice(transaction,visit._id,'seated',visit.waiterId,ctx?.actorId);
+    table.arrival = undefined;
     table.currentSessionId = visit._id;
     table.status = 'seated';
     await table.save({ session: transaction });
@@ -119,6 +126,10 @@ export async function closeSession(id: string, ctx: ActorCtx) {
     if (!table) throw AppError.conflict('Table visit changed; refresh before closing');
     visit.status = 'closed';
     visit.closedAt = new Date();
+    if (visit.qrService) {
+      await ServiceTask.updateMany({visit:visit._id,state:{$in:['requested','acknowledged']}},
+        {$set:{state:'cancelled',cancelledAt:visit.closedAt,cancelledBy:ctx.actorId}}, {session:transaction});
+    }
     await visit.save({ session: transaction });
     await ReservationModel.updateOne(
       { tableSessionId: visit._id, status: 'checked_in' },
@@ -147,3 +158,4 @@ export async function closeSession(id: string, ctx: ActorCtx) {
 export async function listOpenSessions() {
   return TableSessionModel.find({ status: 'open' }).sort({ openedAt: -1 }).lean();
 }
+

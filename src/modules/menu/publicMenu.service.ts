@@ -55,6 +55,7 @@ export async function getPublicMenu(opts: { lang?: string; channel?: 'dine_in' |
     }
     if (!isWithinAvailability(item.availabilityWindows, now)) continue;
     const visibleVariants = item.variants.filter((v) => !v.is86);
+    if (item.pizzaBuilder?.enabled && item.variants.length && !visibleVariants.length) continue;
     const localized = pickTranslated(
       { name: item.name, description: item.description },
       item.translations as unknown as Record<string, { name: string; description?: string }>,
@@ -77,6 +78,7 @@ export async function getPublicMenu(opts: { lang?: string; channel?: 'dine_in' |
       allergens: item.allergens,
       tags: item.tags,
       imageUrl: item.imageUrl,
+      pizzaBuilder: item.pizzaBuilder ?? undefined,
       prepTimeMinutes: item.prepTimeMinutes,
       variants: visibleVariants.map((v) => ({
         id: String(v._id),
@@ -97,6 +99,7 @@ export async function getPublicMenu(opts: { lang?: string; channel?: 'dine_in' |
             name: m.name,
             priceDelta: m.priceDelta,
             isDefault: m.isDefault,
+            pizzaArt: m.pizzaArt,
           })),
       })),
     };

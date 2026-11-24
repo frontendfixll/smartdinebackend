@@ -21,6 +21,7 @@ export interface TableDocument extends Document {
   mergedIntoTableId?: Types.ObjectId;
   sortOrder: number;
   isActive: boolean;
+  arrival?: { covers: number; expiresAt: Date };
   scheduleVersion: number;
   createdAt: Date;
   updatedAt: Date;
@@ -52,9 +53,11 @@ const TableSchema = new Schema<TableDocument>(
     mergedIntoTableId: { type: Schema.Types.ObjectId, ref: 'Table' },
     sortOrder: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true, index: true },
+    arrival: { type: new Schema({ covers: Number, expiresAt: Date }, { _id: false }), default: undefined },
     scheduleVersion: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
 
 export const TableModel = model<TableDocument>('Table', TableSchema);
+

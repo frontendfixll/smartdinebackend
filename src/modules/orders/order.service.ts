@@ -1,3 +1,5 @@
+import { grantedVisit } from '@modules/tableService/membership';
+import { pilotZone } from '@modules/tableService/assignment';
 import { AuditLogModel } from '@modules/audit/auditLog.model';
 import mongoose, { Types } from 'mongoose';
 import { OrderModel, OrderDocument, OrderItem, OrderItemStatus, OrderStatus } from './order.model';
@@ -82,6 +84,9 @@ async function resolveItems(inputs: ItemInput[]): Promise<ResolvedItem[]> {
       let basePrice = item.basePrice;
       let variantName: string | undefined;
       let variantId: Types.ObjectId | undefined;
+      if (item.pizzaBuilder?.enabled && item.variants.length && !inp.variantId) {
+        throw AppError.badRequest('Choose an available pizza size');
+      }
       if (inp.variantId) {
         const variant = item.variants.find((v) => String(v._id) === inp.variantId);
         if (!variant) throw AppError.badRequest(`Variant not found for ${item.name}`);
@@ -241,6 +246,7 @@ export async function placeDineInOrder(
   input: PlaceDineInInput,
   ctx?: ActorCtx,
   attempt?: OrderRequest,
+  guestAccess?: { token: unknown },
 ) {
   let tableId: Types.ObjectId | undefined;
   let qrCodeId: Types.ObjectId | undefined;
@@ -259,7 +265,7 @@ export async function placeDineInOrder(
     return finalizeOrder({ ...common, channel: 'dine_in' }, ctx, attempt);
   }
 
-  const { tableId: primaryId, sessionId } = await resolveTableVisit(String(tableId), ctx ?? {});
+  const { tableId: primaryId, sessionId } = await resolveTableVisit(String(tableId), ctx ?? {}, guestAccess);
   tableId = primaryId;
 
   return finalizeOrder(
@@ -268,6 +274,7 @@ export async function placeDineInOrder(
       channel: 'dine_in',
       tableId,
       tableSessionId: sessionId,
+      guestAccess,
       qrCodeId,
     },
     ctx,
@@ -333,7 +340,7 @@ export async function placeAssistedOrder(
   return finalizeOrder({ ...input, channel: 'assisted', tableId, tableSessionId }, ctx, attempt);
 }
 
-async function resolveTableVisit(id: string, ctx: ActorCtx) {
+async function resolveTableVisit(id: string, ctx: ActorCtx, guestAccess?: { token: unknown }) {
   let table = await TableModel.findById(id);
   if (!table || !table.isActive) throw AppError.notFound('Active table not found');
   if (table.mergedIntoTableId) {
@@ -343,6 +350,10 @@ async function resolveTableVisit(id: string, ctx: ActorCtx) {
   let visit = table.currentSessionId
     ? await TableSessionModel.findOne({ _id: table.currentSessionId, status: 'open' })
     : null;
+  if (!visit && pilotZone(table.zone) && process.env.QR_SERVICE_MODE === 'live')
+    throw AppError.conflict('Ask the host to seat your party first');
+  if (guestAccess && (visit?.qrService || guestAccess.token) && grantedVisit(guestAccess.token) !== String(visit?._id))
+    throw AppError.forbidden('Join this table visit before ordering');
   if (!visit) {
     const { openSession } = await import('@modules/tables/tableSession.service');
     try {
@@ -365,6 +376,8 @@ async function resolveTableVisit(id: string, ctx: ActorCtx) {
           })
         : null;
       if (!opened) throw error;
+      if (guestAccess && opened.qrService && grantedVisit(guestAccess.token) !== String(opened._id))
+        throw AppError.forbidden('Join this table visit before ordering');
       return { tableId: table._id, sessionId: opened._id };
     }
   }
@@ -372,6 +385,7 @@ async function resolveTableVisit(id: string, ctx: ActorCtx) {
 }
 
 interface FinalizeArgs extends PlaceOrderCommon {
+  guestAccess?:{token:unknown};
   channel: 'dine_in' | 'window' | 'assisted';
   tableId?: Types.ObjectId;
   tableSessionId?: Types.ObjectId;
@@ -530,6 +544,12 @@ async function finalizeOrder(
         { new: true, session },
       );
       if (!visit) throw AppError.conflict('Table visit is closed');
+      if (visit.qrService) {
+        if (args.guestAccess && grantedVisit(args.guestAccess.token)!==String(visit._id))
+          throw AppError.forbidden("Rejoin this table before placing an order");
+        order.qrService = true;
+        order.waiterId = visit.waiterId;
+      }
     }
     await order.save({ session });
     if (appliedCoupon)
@@ -854,6 +874,8 @@ export async function markServed(id: string, ctx: ActorCtx) {
         'Use the delivery board to resolve this order before changing fulfillment',
       );
     if (order.status !== 'ready') throw AppError.conflict(`Cannot serve from "${order.status}"`);
+    if (order.qrService && order.items.some(it=>it.status==='ready' && !it.runnerId))
+      throw AppError.conflict('Record pickup at the service pass first');
     order.status = 'served';
     for (const it of order.items) {
       if (it.status === 'ready') {
@@ -1040,6 +1062,8 @@ export async function updateItemStatus(
       throw AppError.conflict('This order is no longer in preparation');
     const item = order.items.find((i) => String(i._id) === itemId);
     if (!item) throw AppError.notFound('Order item not found');
+    if (next === 'served' && order.qrService && !item.runnerId)
+      throw AppError.conflict('Record pickup at the service pass first');
     if (station && item.station !== station)
       throw AppError.forbidden(`Item not at station "${station}"`);
     if (item.status === 'cancelled') throw AppError.badRequest('Item is cancelled');
@@ -1154,6 +1178,7 @@ export function toKdsDTO(o: OrderDocument) {
 export function toGuestDTO(o: OrderDocument) {
   return {
     currency: o.currency ?? 'INR',
+    qrService:o.qrService,
     pickupAt: o.pickupAt,
     paymentStatus: o.paymentStatus,
     guestRequests: o.guestRequests.map((r) => ({
@@ -1180,3 +1205,4 @@ export function toGuestDTO(o: OrderDocument) {
     })),
   };
 }
+
