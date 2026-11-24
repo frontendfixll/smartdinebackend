@@ -84,6 +84,9 @@ async function resolveItems(inputs: ItemInput[]): Promise<ResolvedItem[]> {
       let basePrice = item.basePrice;
       let variantName: string | undefined;
       let variantId: Types.ObjectId | undefined;
+      if (item.pizzaBuilder?.enabled && item.variants.length && !inp.variantId) {
+        throw AppError.badRequest('Choose an available pizza size');
+      }
       if (inp.variantId) {
         const variant = item.variants.find((v) => String(v._id) === inp.variantId);
         if (!variant) throw AppError.badRequest(`Variant not found for ${item.name}`);

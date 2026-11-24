@@ -30,6 +30,10 @@ export const createItemSchema = z.object({
   // Direct image URL (works without a Cloudinary upload). The file-upload route still
   // sets this too; here we allow pasting a hosted image URL or clearing it.
   imageUrl: z.string().url().max(1000).optional().or(z.literal('')),
+  pizzaBuilder: z.object({
+    enabled: z.literal(true),
+    baseImageUrl: z.string().url().startsWith('https://').max(1000).optional(),
+  }).nullable().optional(),
   prepTimeMinutes: z.number().int().min(0).max(240).optional(),
   foodType,
   spiceLevel: z.number().int().min(0).max(5).optional(),
@@ -47,7 +51,7 @@ export const createItemSchema = z.object({
 
 export const updateItemSchema = createItemSchema
   .partial()
-  .extend({ isActive: z.boolean().optional() })
+  .extend({ isActive: z.boolean().optional(), variants: z.array(variantSchema.extend({ _id: mongoId().optional() })).max(20).optional() })
   .refine((v) => Object.keys(v).length > 0, { message: 'Provide at least one field' });
 
 export const toggle86Schema = z.object({ is86: z.boolean() });

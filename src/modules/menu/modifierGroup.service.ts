@@ -4,6 +4,8 @@ import { AppError } from '@utils/AppError';
 import { writeAuditLog } from '@modules/audit/audit.service';
 import { emitMenuEvent } from './events';
 
+import type { PizzaArtwork } from './pizza';
+
 interface ActorCtx {
   actorId?: string;
   actorEmail?: string;
@@ -16,7 +18,7 @@ export interface CreateModifierGroupInput {
   isRequired: boolean;
   minSelections: number;
   maxSelections: number;
-  modifiers: Array<{ name: string; priceDelta?: number; isDefault?: boolean }>;
+  modifiers: Array<{ pizzaArt?: PizzaArtwork | null; name: string; priceDelta?: number; isDefault?: boolean }>;
 }
 
 export async function listModifierGroups() {
@@ -38,6 +40,7 @@ export async function createModifierGroup(input: CreateModifierGroupInput, ctx: 
     maxSelections: input.maxSelections,
     modifiers: input.modifiers.map((m) => ({
       name: m.name,
+      pizzaArt: m.pizzaArt ?? undefined,
       priceDelta: m.priceDelta ?? 0,
       isDefault: m.isDefault ?? false,
       is86: false,
@@ -60,7 +63,7 @@ export interface UpdateModifierGroupInput {
   isRequired?: boolean;
   minSelections?: number;
   maxSelections?: number;
-  modifiers?: Array<{ name: string; priceDelta?: number; isDefault?: boolean; is86?: boolean }>;
+  modifiers?: Array<{ _id?: string; pizzaArt?: PizzaArtwork | null; name: string; priceDelta?: number; isDefault?: boolean; is86?: boolean }>;
   isActive?: boolean;
 }
 
@@ -75,15 +78,21 @@ export async function updateModifierGroup(id: string, input: UpdateModifierGroup
   if (input.maxSelections !== undefined) g.maxSelections = input.maxSelections;
   if (typeof input.isActive === 'boolean') g.isActive = input.isActive;
   if (input.modifiers !== undefined) {
-    g.set(
-      'modifiers',
-      input.modifiers.map((m) => ({
+    const used = new Set<string>();
+    const updated = input.modifiers.map((m) => {
+      const existing = m._id ? g.modifiers.find((opt) => String(opt._id) === m._id) : undefined;
+      if (m._id && (!existing || used.has(m._id))) throw AppError.badRequest('Invalid or duplicate option ID');
+      if (m._id) used.add(m._id);
+      return {
+        _id: existing?._id,
         name: m.name,
         priceDelta: m.priceDelta ?? 0,
         isDefault: m.isDefault ?? false,
-        is86: m.is86 ?? false,
-      })),
-    );
+        is86: m.is86 ?? existing?.is86 ?? false,
+        pizzaArt: m.pizzaArt === undefined ? existing?.pizzaArt : m.pizzaArt ?? undefined,
+      };
+    });
+    g.set('modifiers', updated);
   }
   await g.save();
   await writeAuditLog({

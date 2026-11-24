@@ -1,6 +1,9 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
+import { pizzaArtwork, type PizzaArtwork } from './pizza';
+
 export interface Modifier {
+  pizzaArt?: PizzaArtwork;
   _id: Types.ObjectId;
   name: string;
   priceDelta: number;
@@ -24,6 +27,7 @@ export interface ModifierGroupDocument extends Document {
 const ModifierSchema = new Schema<Modifier>(
   {
     name: { type: String, required: true, trim: true },
+    pizzaArt: { type: String, enum: pizzaArtwork },
     priceDelta: { type: Number, default: 0 },
     isDefault: { type: Boolean, default: false },
     is86: { type: Boolean, default: false },

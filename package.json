@@ -12,6 +12,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
+    "seed:pizza": "ts-node -r tsconfig-paths/register src/db/seedPizza.ts",
     "seed": "ts-node -r tsconfig-paths/register src/db/seed.ts",
     "dev:local": "node scripts/start-local.cjs"
   },

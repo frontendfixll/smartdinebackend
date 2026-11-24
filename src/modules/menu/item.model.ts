@@ -1,5 +1,7 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
+import type { PizzaBuilder } from './pizza';
+
 export type FoodType = 'veg' | 'non_veg' | 'egg' | 'vegan';
 
 export interface Variant {
@@ -37,6 +39,7 @@ export interface ItemDocument extends Document {
   hsnCode?: string;
   imageUrl?: string;
   imagePublicId?: string;
+  pizzaBuilder?: PizzaBuilder | null;
   variants: Variant[];
   modifierGroupIds: Types.ObjectId[];
   availabilityWindows: AvailabilityWindow[];
@@ -91,6 +94,7 @@ const ItemSchema = new Schema<ItemDocument>(
     hsnCode: { type: String, trim: true },
     imageUrl: String,
     imagePublicId: String,
+    pizzaBuilder: { type: new Schema({ enabled: { type: Boolean, required: true }, baseImageUrl: String }, { _id: false }), default: undefined },
     variants: { type: [VariantSchema], default: [] },
     modifierGroupIds: [{ type: Schema.Types.ObjectId, ref: 'ModifierGroup' }],
     availabilityWindows: { type: [AvailabilityWindowSchema], default: [] },

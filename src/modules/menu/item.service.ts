@@ -44,13 +44,14 @@ export interface CreateItemInput {
   categoryId: string;
   basePrice: number;
   imageUrl?: string;
+  pizzaBuilder?: import('./pizza').PizzaBuilder | null;
   prepTimeMinutes?: number;
   foodType: 'veg' | 'non_veg' | 'egg' | 'vegan';
   spiceLevel?: number;
   calories?: number;
   allergens?: string[];
   hsnCode?: string;
-  variants?: Array<{ name: string; priceDelta?: number; absolutePrice?: number; sku?: string }>;
+  variants?: Array<{ _id?: string; name: string; priceDelta?: number; absolutePrice?: number; sku?: string }>;
   modifierGroupIds?: string[];
   availabilityWindows?: Array<{ daysOfWeek: number[]; startTime: string; endTime: string }>;
   station?: string;
@@ -72,6 +73,7 @@ export async function createItem(input: CreateItemInput, ctx: ActorCtx) {
     description: input.description,
     categoryId: new Types.ObjectId(input.categoryId),
     basePrice: input.basePrice,
+    pizzaBuilder: input.pizzaBuilder,
     imageUrl: input.imageUrl || undefined,
     prepTimeMinutes: input.prepTimeMinutes ?? 10,
     foodType: input.foodType,
@@ -157,6 +159,7 @@ export async function updateItem(id: string, input: UpdateItemInput, ctx: ActorC
   if (input.name !== undefined) item.name = input.name;
   if (input.description !== undefined) item.description = input.description;
   if (input.basePrice !== undefined) item.basePrice = input.basePrice;
+  if (input.pizzaBuilder !== undefined) item.pizzaBuilder = input.pizzaBuilder;
   if (input.imageUrl !== undefined) item.imageUrl = input.imageUrl || undefined;
   if (input.prepTimeMinutes !== undefined) item.prepTimeMinutes = input.prepTimeMinutes;
   if (input.foodType !== undefined) item.foodType = input.foodType;
@@ -164,7 +167,17 @@ export async function updateItem(id: string, input: UpdateItemInput, ctx: ActorC
   if (input.calories !== undefined) item.calories = input.calories;
   if (input.allergens !== undefined) item.allergens = input.allergens;
   if (input.hsnCode !== undefined) item.hsnCode = input.hsnCode;
-  if (input.variants !== undefined) item.set('variants', input.variants);
+  if (input.variants !== undefined) {
+    const used = new Set<string>();
+    const variants = input.variants.map((v) => {
+      if (!v._id) return v;
+      const existing = item.variants.find((candidate) => String(candidate._id) === v._id);
+      if (!existing || used.has(v._id)) throw AppError.badRequest('Invalid or duplicate size ID');
+      used.add(v._id);
+      return { ...v, is86: existing.is86, sku: v.sku ?? existing.sku };
+    });
+    item.set('variants', variants);
+  }
   if (input.availabilityWindows !== undefined) item.set('availabilityWindows', input.availabilityWindows);
   if (input.station !== undefined) item.station = input.station;
   if (input.tags !== undefined) item.tags = input.tags;
