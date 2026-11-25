@@ -16,19 +16,27 @@ async function seedBurger(currency: string) {
     { $setOnInsert: { name: "Burgers", slug: "burgers", sortOrder: 6 } },
     { upsert: true, new: true },
   );
+  const inr = currency === "INR";
   const group = await ModifierGroupModel.findOneAndUpdate(
     { _id: "63504a5a5000000000000011" },
     {
+      $set: {
+        maxSelections: 8,
+        modifiers: [
+          { _id: new Types.ObjectId(), name: "Burger sauce",     pizzaArt: "sauce",    priceDelta: 0,                    isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Cheddar",          pizzaArt: "cheddar",  priceDelta: inr ? 25 : 1,         isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Bacon",            pizzaArt: "bacon",    priceDelta: inr ? 50 : 2,         isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Pickles",          pizzaArt: "pickle",   priceDelta: 0,                    isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Caramelized onion",pizzaArt: "onion",    priceDelta: inr ? 20 : 0.75,      isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Jalapeños",        pizzaArt: "jalapeno", priceDelta: 0,                    isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Sliced tomato",    pizzaArt: "tomato",   priceDelta: 0,                    isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Lettuce",          pizzaArt: "lettuce",  priceDelta: 0,                    isDefault: true,  is86: false },
+        ],
+      },
       $setOnInsert: {
-        name: "Burger extras",
+        name: "Burger layers",
         isRequired: false,
         minSelections: 0,
-        maxSelections: 3,
-        modifiers: [
-          { _id: new Types.ObjectId(), name: "Cheddar",       pizzaArt: "cheddar", priceDelta: currency === "INR" ? 25 : 1,   isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Lettuce",       pizzaArt: "lettuce", priceDelta: 0,                              isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Sliced tomato", pizzaArt: "tomato",  priceDelta: 0,                              isDefault: false, is86: false },
-        ],
       },
     },
     { upsert: true, new: true },
@@ -68,19 +76,25 @@ async function seedTaco(currency: string) {
     { $setOnInsert: { name: "Tacos", slug: "tacos", sortOrder: 7 } },
     { upsert: true, new: true },
   );
+  const inr = currency === "INR";
   const group = await ModifierGroupModel.findOneAndUpdate(
     { _id: "63504a5a5000000000000021" },
     {
+      $set: {
+        maxSelections: 6,
+        modifiers: [
+          { _id: new Types.ObjectId(), name: "Pico de gallo",   pizzaArt: "salsa",       priceDelta: 0,               isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Sweet corn",      pizzaArt: "corn",        priceDelta: 0,               isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Avocado",         pizzaArt: "avocado",     priceDelta: inr ? 30 : 1.5,  isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Sour cream",      pizzaArt: "sour-cream",  priceDelta: 0,               isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Grated cheddar",  pizzaArt: "cheddar",     priceDelta: inr ? 20 : 1,    isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Jalapeños",       pizzaArt: "jalapeno",    priceDelta: 0,               isDefault: false, is86: false },
+        ],
+      },
       $setOnInsert: {
-        name: "Taco toppings",
+        name: "Taco fillings",
         isRequired: false,
         minSelections: 0,
-        maxSelections: 3,
-        modifiers: [
-          { _id: new Types.ObjectId(), name: "Pico de gallo",   pizzaArt: "salsa",   priceDelta: 0,                              isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Avocado",         pizzaArt: "avocado", priceDelta: currency === "INR" ? 30 : 1.5,  isDefault: false, is86: false },
-          { _id: new Types.ObjectId(), name: "Grated cheddar",  pizzaArt: "cheddar", priceDelta: currency === "INR" ? 20 : 1,    isDefault: true,  is86: false },
-        ],
       },
     },
     { upsert: true, new: true },
