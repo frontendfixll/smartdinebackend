@@ -14,6 +14,7 @@
     "test:watch": "jest --watch",
     "seed:pizza": "ts-node -r tsconfig-paths/register src/db/seedPizza.ts",
     "seed:kitchen": "ts-node -r tsconfig-paths/register src/db/seedKitchen.ts",
+    "seed:demo": "ts-node -r tsconfig-paths/register src/db/seedDemo.ts",
     "seed": "ts-node -r tsconfig-paths/register src/db/seed.ts",
     "dev:local": "node scripts/start-local.cjs"
   },

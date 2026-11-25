@@ -7,7 +7,10 @@ import { connectDatabase, disconnectDatabase } from "./connect";
 
 async function seedBurger(currency: string) {
   const itemId = new Types.ObjectId("63504a5a5000000000000010");
-  if (await ItemModel.exists({ _id: itemId })) return;
+  if (await ItemModel.exists({ _id: itemId })) {
+    await ItemModel.updateOne({ _id: itemId }, { $set: { "pizzaBuilder.kind": "burger" } });
+    return;
+  }
   const prices = currency === "INR" ? [200, 280] : [10, 14];
   if (currency !== "INR" && currency !== "USD")
     throw Error("Create the burger in the menu editor with prices in " + currency);
@@ -67,7 +70,10 @@ async function seedBurger(currency: string) {
 
 async function seedTaco(currency: string) {
   const itemId = new Types.ObjectId("63504a5a5000000000000020");
-  if (await ItemModel.exists({ _id: itemId })) return;
+  if (await ItemModel.exists({ _id: itemId })) {
+    await ItemModel.updateOne({ _id: itemId }, { $set: { "pizzaBuilder.kind": "taco" } });
+    return;
+  }
   const prices = currency === "INR" ? [120, 220] : [6, 11];
   if (currency !== "INR" && currency !== "USD")
     throw Error("Create the taco in the menu editor with prices in " + currency);
