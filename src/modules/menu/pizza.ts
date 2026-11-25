@@ -9,7 +9,9 @@ export const pizzaArtwork = [
   "tomato",
 ] as const;
 export type PizzaArtwork = (typeof pizzaArtwork)[number];
+export type BuilderKind = 'pizza' | 'burger' | 'taco';
 export interface PizzaBuilder {
   enabled: true;
+  kind?: BuilderKind;
   baseImageUrl?: string;
 }

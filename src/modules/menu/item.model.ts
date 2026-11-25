@@ -94,7 +94,7 @@ const ItemSchema = new Schema<ItemDocument>(
     hsnCode: { type: String, trim: true },
     imageUrl: String,
     imagePublicId: String,
-    pizzaBuilder: { type: new Schema({ enabled: { type: Boolean, required: true }, baseImageUrl: String }, { _id: false }), default: undefined },
+    pizzaBuilder: { type: new Schema({ enabled: { type: Boolean, required: true }, kind: { type: String, enum: ['pizza', 'burger', 'taco'] }, baseImageUrl: String }, { _id: false }), default: undefined },
     variants: { type: [VariantSchema], default: [] },
     modifierGroupIds: [{ type: Schema.Types.ObjectId, ref: 'ModifierGroup' }],
     availabilityWindows: { type: [AvailabilityWindowSchema], default: [] },
