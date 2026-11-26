@@ -7,43 +7,39 @@ import { connectDatabase, disconnectDatabase } from "./connect";
 
 async function seedBurger(currency: string) {
   const itemId = new Types.ObjectId("63504a5a5000000000000010");
-  if (await ItemModel.exists({ _id: itemId })) {
-    await ItemModel.updateOne({ _id: itemId }, { $set: { "pizzaBuilder.kind": "burger" } });
-    return;
-  }
-  const prices = currency === "INR" ? [200, 280] : [10, 14];
+  const inr = currency === "INR";
   if (currency !== "INR" && currency !== "USD")
     throw Error("Create the burger in the menu editor with prices in " + currency);
+
   const category = await CategoryModel.findOneAndUpdate(
     { slug: "burgers" },
     { $setOnInsert: { name: "Burgers", slug: "burgers", sortOrder: 6 } },
     { upsert: true, new: true },
   );
-  const inr = currency === "INR";
+
+  // Always update modifiers so re-runs add new options
   const group = await ModifierGroupModel.findOneAndUpdate(
-    { _id: "63504a5a5000000000000011" },
+    { _id: new Types.ObjectId("63504a5a5000000000000011") },
     {
       $set: {
         maxSelections: 8,
         modifiers: [
-          { _id: new Types.ObjectId(), name: "Burger sauce",     pizzaArt: "sauce",    priceDelta: 0,                    isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Cheddar",          pizzaArt: "cheddar",  priceDelta: inr ? 25 : 1,         isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Bacon",            pizzaArt: "bacon",    priceDelta: inr ? 50 : 2,         isDefault: false, is86: false },
-          { _id: new Types.ObjectId(), name: "Pickles",          pizzaArt: "pickle",   priceDelta: 0,                    isDefault: false, is86: false },
-          { _id: new Types.ObjectId(), name: "Caramelized onion",pizzaArt: "onion",    priceDelta: inr ? 20 : 0.75,      isDefault: false, is86: false },
-          { _id: new Types.ObjectId(), name: "Jalapeños",        pizzaArt: "jalapeno", priceDelta: 0,                    isDefault: false, is86: false },
-          { _id: new Types.ObjectId(), name: "Sliced tomato",    pizzaArt: "tomato",   priceDelta: 0,                    isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Lettuce",          pizzaArt: "lettuce",  priceDelta: 0,                    isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Burger sauce",      pizzaArt: "sauce",    priceDelta: 0,           isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Cheddar",           pizzaArt: "cheddar",  priceDelta: inr ? 25 : 1,isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Bacon",             pizzaArt: "bacon",    priceDelta: inr ? 50 : 2,isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Pickles",           pizzaArt: "pickle",   priceDelta: 0,           isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Caramelized onion", pizzaArt: "onion",    priceDelta: inr ? 20 : 0.75, isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Jalapeños",         pizzaArt: "jalapeno", priceDelta: 0,           isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Sliced tomato",     pizzaArt: "tomato",   priceDelta: 0,           isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Lettuce",           pizzaArt: "lettuce",  priceDelta: 0,           isDefault: true,  is86: false },
         ],
       },
-      $setOnInsert: {
-        name: "Burger layers",
-        isRequired: false,
-        minSelections: 0,
-      },
+      $setOnInsert: { name: "Burger layers", isRequired: false, minSelections: 0 },
     },
     { upsert: true, new: true },
   );
+
+  const prices = inr ? [200, 280] : [10, 14];
   await ItemModel.updateOne(
     { _id: itemId },
     {
@@ -56,55 +52,50 @@ async function seedBurger(currency: string) {
         allergens: ["wheat", "milk", "soy"],
         basePrice: prices[0],
         station: "grill",
-        variants: ["Single", "Double"].map((name, i) => ({
-          name,
-          absolutePrice: prices[i],
-        })),
+        variants: ["Single", "Double"].map((name, i) => ({ name, absolutePrice: prices[i] })),
         modifierGroupIds: [group._id],
         pizzaBuilder: { enabled: true, kind: "burger" },
       },
     },
     { upsert: true },
   );
+  // Patch kind on existing docs (separate update avoids $set/$setOnInsert path conflict)
+  await ItemModel.updateOne({ _id: itemId }, { $set: { "pizzaBuilder.kind": "burger" } });
 }
 
 async function seedTaco(currency: string) {
   const itemId = new Types.ObjectId("63504a5a5000000000000020");
-  if (await ItemModel.exists({ _id: itemId })) {
-    await ItemModel.updateOne({ _id: itemId }, { $set: { "pizzaBuilder.kind": "taco" } });
-    return;
-  }
-  const prices = currency === "INR" ? [120, 220] : [6, 11];
+  const inr = currency === "INR";
   if (currency !== "INR" && currency !== "USD")
     throw Error("Create the taco in the menu editor with prices in " + currency);
+
   const category = await CategoryModel.findOneAndUpdate(
     { slug: "tacos" },
     { $setOnInsert: { name: "Tacos", slug: "tacos", sortOrder: 7 } },
     { upsert: true, new: true },
   );
-  const inr = currency === "INR";
+
+  // Always update modifiers so re-runs add new options
   const group = await ModifierGroupModel.findOneAndUpdate(
-    { _id: "63504a5a5000000000000021" },
+    { _id: new Types.ObjectId("63504a5a5000000000000021") },
     {
       $set: {
         maxSelections: 6,
         modifiers: [
-          { _id: new Types.ObjectId(), name: "Pico de gallo",   pizzaArt: "salsa",       priceDelta: 0,               isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Sweet corn",      pizzaArt: "corn",        priceDelta: 0,               isDefault: false, is86: false },
-          { _id: new Types.ObjectId(), name: "Avocado",         pizzaArt: "avocado",     priceDelta: inr ? 30 : 1.5,  isDefault: false, is86: false },
-          { _id: new Types.ObjectId(), name: "Sour cream",      pizzaArt: "sour-cream",  priceDelta: 0,               isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Grated cheddar",  pizzaArt: "cheddar",     priceDelta: inr ? 20 : 1,    isDefault: true,  is86: false },
-          { _id: new Types.ObjectId(), name: "Jalapeños",       pizzaArt: "jalapeno",    priceDelta: 0,               isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Pico de gallo",  pizzaArt: "salsa",      priceDelta: 0,            isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Sweet corn",     pizzaArt: "corn",       priceDelta: 0,            isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Avocado",        pizzaArt: "avocado",    priceDelta: inr ? 30 : 1.5, isDefault: false, is86: false },
+          { _id: new Types.ObjectId(), name: "Sour cream",     pizzaArt: "sour-cream", priceDelta: 0,            isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Grated cheddar", pizzaArt: "cheddar",    priceDelta: inr ? 20 : 1, isDefault: true,  is86: false },
+          { _id: new Types.ObjectId(), name: "Jalapeños",      pizzaArt: "jalapeno",   priceDelta: 0,            isDefault: false, is86: false },
         ],
       },
-      $setOnInsert: {
-        name: "Taco fillings",
-        isRequired: false,
-        minSelections: 0,
-      },
+      $setOnInsert: { name: "Taco fillings", isRequired: false, minSelections: 0 },
     },
     { upsert: true, new: true },
   );
+
+  const prices = inr ? [120, 220] : [6, 11];
   await ItemModel.updateOne(
     { _id: itemId },
     {
@@ -117,16 +108,15 @@ async function seedTaco(currency: string) {
         allergens: ["wheat", "milk"],
         basePrice: prices[0],
         station: "grill",
-        variants: ["One", "Two"].map((name, i) => ({
-          name,
-          absolutePrice: prices[i],
-        })),
+        variants: ["One", "Two"].map((name, i) => ({ name, absolutePrice: prices[i] })),
         modifierGroupIds: [group._id],
         pizzaBuilder: { enabled: true, kind: "taco" },
       },
     },
     { upsert: true },
   );
+  // Patch kind on existing docs (separate update avoids $set/$setOnInsert path conflict)
+  await ItemModel.updateOne({ _id: itemId }, { $set: { "pizzaBuilder.kind": "taco" } });
 }
 
 async function seedKitchen() {
